@@ -1,0 +1,11 @@
+[global]
+# Run mode, can be 'di' for Digitally Imported, 'sky' for Sky.FM, or 'all' for both
+mode = all
+# Default stream key to use if one isn't given, must be valid for the mode used
+default_stream_key = vocaltrance
+# Stream quality
+quality = public3
+# Media player command to use, note that this is split on whitespace
+player = mplayer -really-quiet
+# Authentication key for premium streams, optional
+#auth_key = xxxxxxxxxxxxxxx

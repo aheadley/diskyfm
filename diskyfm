@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+
+import subprocess
+import random
+import json
+import urllib2
+
+class InvalidStreamKey(Exception): pass
+class StreamError(Exception): pass
+class ConfigError(Exception): pass
+
+MODES = ['di', 'sky']
+
+QUALITIES = {
+    'mp3': [
+        'premium_high',         #256k
+        'premium',              #128k
+        'public3',              #96k
+    ],
+    'aac': [
+        'premium_medium',       #64k
+        'premium_low',          #40k
+        'public2',              #40k
+    ],
+    # 'wma': [
+    #    'premium_wma',          #128k
+    #    'premium_wma_low',      #64k
+    #    'public5',              #40k
+    # ],
+}
+
+class AudioAddictSite(object):
+    _mode = None
+    player = None
+    quality = None
+
+    def __init__(self, mode='all', quality='public3',
+            player=['mplayer', '-really-quiet'], **kwargs):
+        self._mode = mode
+        self.quality = quality
+        self.player = player
+        self._config = kwargs
+
+    @property
+    def stream_list(self):
+        if self._mode == 'all':
+            streams = []
+            #this is really terrible
+            for mode in MODES:
+                self._mode = mode
+                streams.extend(self.stream_list)
+            self._mode = 'all'
+            return streams
+        else:
+            url = 'http://listen.{site}.fm/{quality}/'.format(
+                site=self._mode,
+                quality=self.quality)
+            return json.load(urllib2.urlopen(url))
+
+    def play_stream(self, stream_key):
+        stream_url = self.get_stream_url(stream_key)
+        try:
+            with open('/dev/null', 'w') as dev_null:
+                return subprocess.call(self.player + [stream_url],
+                    stdin=sys.stdin,
+                    stdout=sys.stdout,
+                    stderr=dev_null)
+        except TypeError as err:
+            raise StreamError(err)
+
+    def get_stream_url(self, stream_key):
+        try:
+            pls_url = [stream['playlist'] \
+                for stream in self.stream_list \
+                    if stream['key'] == stream_key][0]
+        except IndexError:
+            raise InvalidStreamKey(stream_key)
+        if self.quality.startswith('premium'):
+            try:
+                pls_url = '{url}?{auth_key}'.format(
+                    url=pls_url,
+                    auth_key=self._config['auth_key'])
+            except KeyError:
+                raise ConfigError('Premium quality stations require auth_key')
+        return random.choice([line.strip().split('=')[1] \
+            for line in urllib2.urlopen(pls_url).read().split('\n') \
+                if '=' in line and line.startswith('File')])
+
+if __name__ == '__main__':
+    import sys
+    import optparse
+    import os.path
+    import ConfigParser
+
+    def get_options():
+        parser = optparse.OptionParser()
+        parser.add_option('-C', '--config-file', dest='config_file',
+            help='Use an alternate config file', metavar='FILE')
+        parser.add_option('-P', '--player', dest='player',
+            help='Use an alternate audio player', metavar='PLAYER')
+        parser.add_option('-m', '--mode', dest='mode', type='choice',
+            choices=MODES+['all'])
+        parser.add_option('-q', '--quality', type='choice',
+            choices=[x for k in QUALITIES.values() for x in k], help='Set the stream quality')
+        parser.add_option('-a', '--auth-key',
+            help='Set the auth key for premium streams')
+        parser.add_option('-l', '--list-streams', action='store_true',
+            help='List the available streams')
+        return parser.parse_args()
+
+    def get_config(config_file):
+        defaults = {
+            'player': 'mplayer -really-quiet',
+            'quality': 'public3',
+            'mode': 'all',
+        }
+        parser = ConfigParser.RawConfigParser(defaults)
+        try:
+            with open(config_file, 'r') as cf:
+                parser.readfp(cf, config_file)
+        except OSError:
+            pass
+        return dict(parser.items('global'))
+
+    (opts, args) = get_options()
+    opts = dict((k,v) for (k,v) in vars(opts).items() if v is not None)
+    try:
+        config = get_config(opts['config_file'])
+    except KeyError:
+        config = get_config(os.path.expanduser('~/.diskyfmrc'))
+    config.update(opts)
+    config['player'] = config['player'].split()
+
+    streamer = AudioAddictSite(**config)
+    if 'list_streams' in config:
+        stream_list = streamer.stream_list
+        print '\n'.join('{s[key]: <{width}} -- {s[name]}: {s[description]}'.format(
+            width=max(len(s['key']) for s in stream_list), s=s) \
+                for s in stream_list)
+    else:
+        try:
+            stream_key = args[0]
+        except IndexError:
+            stream_key = config['default_stream_key']
+        print 'Playing {stream_key}@{quality}, press \'q\' to quit...'.format(
+            stream_key=stream_key,
+            quality=streamer.quality)
+        streamer.play_stream(stream_key)
