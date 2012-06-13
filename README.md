@@ -33,11 +33,20 @@ for any of the playlists. It will look something like
 `http://listen.di.fm/premium_high/vocalchillout.pls?xxxxxxxxxxxxxxx` . The part
 after the `?` (question mark) is the auth_key.
 
-_A note on the _`mode`_ option:_ The default is to glob both DI.FM and Sky.FM sites
+_A note on the `mode` option:_ The default is to glob both DI.FM and Sky.FM sites
 together so you can just pick a station from either site and it will
 _just work_(TM). However, the `mode` option will let you limit your choices to
 one site or the other if you want to (for whatever reason). Valid modes are `di`,
 `sky`, or `all`.
+
+Installation
+------------
+
+Since it's just a simple script there is no real installation process, but you
+can throw it in `/usr/local/bin/` (or any other place in `$PATH`) if you want
+to avoid typing out the full path to the script every time. The default backend
+media player is mplayer, but that can be changed via the `-P` option or `player`
+config value. Beyond that, the only real dependancy is Python 2.6 or higher.
 
 Examples
 --------
@@ -53,4 +62,3 @@ Play the Vocal Trance station at 64k AAC quality (see the top of the `diskyfm`
 file for the available quality selections):
 
     $ diskyfm -q premium_medium vocaltrance
-
