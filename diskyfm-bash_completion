@@ -1,0 +1,9 @@
+_diskyfm() {
+    local cur
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    local stations=$(diskyfm -l | awk '{print $1}')
+    COMPREPLY=($(compgen -W "$stations" $cur))
+}
+
+complete -F _diskyfm diskyfm
