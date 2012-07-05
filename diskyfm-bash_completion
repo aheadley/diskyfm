@@ -1,9 +1,25 @@
+#!/bin/bash
+
+function in_array() {
+    local hay needle=$1
+    shift
+    for hay; do
+        [[ $hay == $needle ]] && return 0
+    done
+    return 1
+}
+
 _diskyfm() {
     local cur
     COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    local stations=$(diskyfm -l | awk '{print $1}')
-    COMPREPLY=($(compgen -W "$stations" $cur))
+    if in_array 'di' "${COMP_WORDS[@]}"; then
+        local stations=$(diskyfm -l -m di | awk '{print $1}')
+    elif in_array 'sky' "${COMP_WORDS[@]}"; then
+        local stations=$(diskyfm -l -m sky | awk '{print $1}')
+    else
+        local stations=$(diskyfm -l | awk '{print $1}')
+    fi
+    COMPREPLY=($(compgen -W "$stations" "${COMP_WORDS[COMP_CWORD]}"))
 }
 
 complete -F _diskyfm diskyfm
