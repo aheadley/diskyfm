@@ -29,13 +29,15 @@ QUALITIES = {
     # ],
 }
 
+DEFAULT_PLAYER = 'mplayer -really-quiet {stream_url}'
+
 class AudioAddictSite(object):
     _mode = None
     player = None
     quality = None
 
     def __init__(self, mode='all', quality='public3',
-            player=['mplayer', '-really-quiet'], **kwargs):
+            player=DEFAULT_PLAYER, **kwargs):
         self._mode = mode
         self.quality = quality
         self.player = player
@@ -61,10 +63,11 @@ class AudioAddictSite(object):
         stream_url = self.get_stream_url(stream_key)
         try:
             with open('/dev/null', 'w') as dev_null:
-                return subprocess.call(self.player + [stream_url],
+                return subprocess.call(self.player.format(stream_url=stream_url),
                     stdin=sys.stdin,
                     stdout=sys.stdout,
-                    stderr=dev_null)
+                    stderr=dev_null,
+                    shell=True)
         except TypeError as err:
             raise StreamError(err)
 
@@ -110,7 +113,7 @@ if __name__ == '__main__':
 
     def get_config(config_file):
         defaults = {
-            'player': 'mplayer -really-quiet',
+            'player': DEFAULT_PLAYER,
             'quality': 'public3',
             'mode': 'all',
         }
@@ -129,7 +132,6 @@ if __name__ == '__main__':
     except KeyError:
         config = get_config(os.path.expanduser('~/.diskyfmrc'))
     config.update(opts)
-    config['player'] = config['player'].split()
 
     streamer = AudioAddictSite(**config)
     if 'list_streams' in config:
