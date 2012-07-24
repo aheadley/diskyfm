@@ -5,6 +5,9 @@ import random
 import json
 import urllib2
 import itertools
+import os.path
+import time
+import hashlib
 from functools import wraps
 try:
     from bs4 import BeautifulSoup
@@ -62,6 +65,8 @@ class AudioAddictSite(object):
     _mode = None
     player = None
     quality = None
+    
+    STREAM_CACHE_TTL = 86400
 
     def __init__(self, mode='all', quality='public3',
             player=DEFAULT_PLAYER, **kwargs):
@@ -123,9 +128,20 @@ class AudioAddictSite(object):
             url = 'http://listen.{mode}.fm/{quality}/'.format(
                 mode=mode,
                 quality=self.quality)
-            return json.load(urllib2.urlopen(url))
+            with open(self._get_stream_list_cache_file(url), 'r') as strm_cache:
+                data = json.load(strm_cache)
+            return data
         else:
             raise InvalidMode(mode)
+    
+    def _get_stream_list_cache_file(self, stream_list_url):
+        filename = '/var/tmp/diskyfm_stream_list_{url_hash}'.format(
+            url_hash=hashlib.md5(stream_list_url).hexdigest())
+        if not os.path.exists(filename) or \
+                time.time() - os.path.getmtime(filename) > self.STREAM_CACHE_TTL:
+            with open(filename, 'w') as strm_cache:
+                strm_cache.write(urllib2.urlopen(stream_list_url).read())
+        return filename
 
     def _identify_stream_mode(self, stream):
         for (m, s) in ((m, s) for m in MODES for s in self._get_stream_list(m)):
