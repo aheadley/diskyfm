@@ -65,7 +65,7 @@ class AudioAddictSite(object):
     _mode = None
     player = None
     quality = None
-    
+
     STREAM_CACHE_TTL = 86400
 
     def __init__(self, mode='all', quality='public3',
@@ -133,7 +133,7 @@ class AudioAddictSite(object):
             return data
         else:
             raise InvalidMode(mode)
-    
+
     def _get_stream_list_cache_file(self, stream_list_url):
         filename = '/var/tmp/diskyfm_stream_list_{url_hash}'.format(
             url_hash=hashlib.md5(stream_list_url).hexdigest())
@@ -183,6 +183,8 @@ if __name__ == '__main__':
             help='Set the auth key for premium streams')
         parser.add_option('-l', '--list-streams', action='store_true',
             help='List the available streams')
+        parser.add_option('-u', '--show-url', action='store_true',
+            help='Don\'t play the stream, just show the URL')
         return parser.parse_args()
 
     def get_config(config_file):
@@ -218,7 +220,10 @@ if __name__ == '__main__':
             stream_key = args[0]
         except IndexError:
             stream_key = config['default_stream_key']
-        print 'Streaming {stream_key} @ {quality}...'.format(
-            stream_key=stream_key,
-            quality=streamer.quality)
-        streamer.play_stream(key=stream_key)
+        if 'show_url' in config:
+            print streamer.get_stream_url(key=stream_key)
+        else:
+            print 'Streaming {stream_key} @ {quality}...'.format(
+                stream_key=stream_key,
+                quality=streamer.quality)
+            streamer.play_stream(key=stream_key)
