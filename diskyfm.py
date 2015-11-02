@@ -213,7 +213,7 @@ if __name__ == '__main__':
     if 'list_streams' in config:
         stream_list = streamer.stream_list
         stream_key_width = max(len(s['key']) for s in stream_list)
-        txt = u'\n'.join(u'{s[key]: <{width}} -- {s[name]}: {s[description]}'.format(
+        txt = u'\n'.join(u'{s[key]: <{width}} -- {s[name]}'.format(
             width=stream_key_width, s=s) for s in stream_list)
         print ''.join(c for c in txt if ord(c) < 128)
     else:
