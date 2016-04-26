@@ -108,6 +108,8 @@ class AudioAddictSite(object):
                     shell=True)
         except TypeError as err:
             raise StreamError(err)
+        except KeyboardInterrupt:
+            return None
 
     @identify_stream
     def get_stream_url(self, stream):
@@ -175,6 +177,8 @@ if __name__ == '__main__':
             help='Use an alternate config file', metavar='FILE')
         parser.add_option('-P', '--player', dest='player',
             help='Use an alternate audio player', metavar='PLAYER')
+        parser.add_option('-R', '--random-stream', dest='random_stream', action='store_true',
+            help='Use an alternate audio player')
         parser.add_option('-m', '--mode', dest='mode', type='choice',
             choices=MODES+['all'])
         parser.add_option('-q', '--quality', type='choice',
@@ -217,10 +221,13 @@ if __name__ == '__main__':
             width=stream_key_width, s=s) for s in stream_list)
         print ''.join(c for c in txt if ord(c) < 128)
     else:
-        try:
-            stream_key = args[0]
-        except IndexError:
-            stream_key = config['default_stream_key']
+        if 'random_stream' in config:
+            stream_key = random.choice([s['key'] for s in streamer.stream_list])
+        else:
+            try:
+                stream_key = args[0]
+            except IndexError:
+                stream_key = config['default_stream_key']
         if 'show_url' in config:
             print streamer.get_stream_url(key=stream_key)
         else:
